@@ -27,5 +27,5 @@ eps = rnorm(100, mean = 0, sd = 10)
 Y <- 5 + 3*X1 + 2*X2 - 0.5*X3 + X4 + 1.3*X5 - 0.4*X6 + 2*X7 - X8 + eps
 
 
-my_data <- data.frame(X1 = X1, X2 = X2, X3 = X3,X4=X4, X5=X5,X6=X6,X7=X7,X8=X8, Y = Y)
-usethis::use_data(my_data, overwrite = TRUE)
+Data2 <- data.frame(X1 = X1, X2 = X2, X3 = X3,X4=X4, X5=X5,X6=X6,X7=X7,X8=X8, Y = Y)
+usethis::use_data(Data2, overwrite = TRUE)
