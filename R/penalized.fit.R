@@ -16,6 +16,9 @@
 hello <- function() {
   print("Hello, world!")
 }
+
+install.packages(c("devtools","usethis","roxygen2","knitr"))
+
 # penalize regression
 # example
 set.seed(123)
@@ -185,4 +188,12 @@ penalized_fit <- function(X, y, type = "lasso", method = "cda", lambda = 0.1,
               method = method))
   return(beta)
 }
+
+# Data
+install.packages("ElemStatLearn")
+library(ElemStatLearn)
+data(prostate)
+
+prostate <- ElemStatLearn::prostate
+usethis::use_data(prostate, overwrite = TRUE)
 
