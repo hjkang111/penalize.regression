@@ -168,11 +168,18 @@ penalized_fit <- function(X, y, type = "lasso", method = "cda", lambda = 0.1,
   return(beta)
 }
 
-# Data
-install.packages("ElemStatLearn")
-library(ElemStatLearn)
-data(prostate)
+# main function example
+penalized_regression <- function(X, y, method = c("lasso", "ridge", "scad"),
+                                 algorithm = c("GD", "CDA"), lambda = 1,
+                                 learning_rate = 0.01, max_iter = 1000) {
+  # method와 algorithm 선택
+  method <- match.arg(method)
+  algorithm <- match.arg(algorithm)
 
-prostate <- ElemStatLearn::prostate
-usethis::use_data(prostate, overwrite = TRUE)
-
+  # 알고리즘과 메소드에 맞는 서브 함수 호출
+  if (algorithm == "GD") {
+    return(perform_GD(X, y, method, lambda, learning_rate, max_iter))
+  } else if (algorithm == "CDA") {
+    return(perform_CDA(X, y, method, lambda, max_iter))
+  }
+}
