@@ -6,3 +6,4 @@ data(Boston)
 
 Boston <- MASS::Boston
 usethis::use_data(Boston, overwrite = TRUE)
+
