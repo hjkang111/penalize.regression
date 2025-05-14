@@ -1,3 +1,2 @@
 exportPattern("^[[:alpha:]]+")
 
-export(penalty_function) # help 함수 썼을 때 보이고 싶은 함수만 export

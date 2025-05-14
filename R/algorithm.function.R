@@ -1,13 +1,13 @@
 #다른 파일에 있는 penalty_function 불러와서 이용할 것임
 
-options(repos = c(CRAN = "https://cran.r-project.org"))
+#options(repos = c(CRAN = "https://cran.r-project.org"))
 
-install.packages("devtools")
+#install.packages("devtools")
 
 # devtools로 GitHub에서 'penalize.regression' 패키지 설치
 #devtools::install_github("hjkang111/penalize.regression")
-devtools::install()
-library(penalize.regression)
+#devtools::install()
+#library(penalize.regression)
 
 
 
@@ -34,6 +34,7 @@ perform_GD <- function(X, y, method, lambda, learning_rate, max_iter) {
   return(beta)
 }
 
+#CDA 함수부터 수정하기
 
 # coordinate descent
 perform_CDA <- function(X, y, method, lambda, max_iter) {
