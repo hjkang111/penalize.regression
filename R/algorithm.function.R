@@ -1,6 +1,14 @@
 #다른 파일에 있는 penalty_function 불러와서 이용할 것임
-#library(penalize.regression)
-#library(penalize.regression)
+
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+install.packages("devtools")
+
+# devtools로 GitHub에서 'penalize.regression' 패키지 설치
+#devtools::install_github("hjkang111/penalize.regression")
+devtools::install()
+library(penalize.regression)
+
 
 
 # gradient descent
