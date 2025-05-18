@@ -81,25 +81,32 @@ perform_Newton <- function(X, y, lambda, max_iter) {
 }
 
 
-# gradient descent
-perform_GD <- function(X, y, method, lambda, learning_rate, max_iter) {
+perform_GD <- function(X, y, method, lambda, learning_rate, max_iter, alpha = 0.5, gamma = 3.7) {
   n <- nrow(X)
   p <- ncol(X)
-
-  # 초기 회귀 계수 설정
   beta <- rep(0, p)
 
-  # 반복문을 통해 Gradient Descent 최적화
   for (iter in 1:max_iter) {
-    # 예측값 계산
     pred <- X %*% beta
     residual <- pred - y
-
-    # Gradient 계산
-    gradient <- (2/n) * t(X) %*% residual + penalty_function(beta, method, lambda)
+    grad_loss <- (2 / n) * t(X) %*% residual
+    grad_penalty <- penalty_gradient(beta, method, lambda, alpha, gamma)
+    gradient <- grad_loss + grad_penalty
 
     beta <- beta - learning_rate * gradient
   }
-
   return(beta)
+}
+
+# penalty gradient function
+penalty_gradient <- function(beta, method, lambda, alpha = 0.5) {
+  if (method == "lasso") {
+    return(lambda * sign(beta))
+  } else if (method == "ridge") {
+    return(2 * lambda * beta)
+  } else if (method == "elasticnet") {
+    return(lambda * (alpha * sign(beta) + 2 * (1 - alpha) * beta))
+  } else {
+    stop("Penalty gradient not implemented for this method")
+  }
 }
