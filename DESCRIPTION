@@ -1,16 +1,15 @@
 Package: penalize.regression
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Flexible Penalized Regression with Multiple Penalties and Solvers
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Kang JuHyun",
+      email = "jhkang9124@gmail.com",
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
+Description: This package provides a flexible framework for fitting penalized regression models with a variety of penalty functions, including Lasso, Ridge, Elastic Net, SCAD, and MCP. It supports multiple optimization methods such as gradient descent (GD), coordinate gradient descent (CGD), and primal-dual algorithms (PD). The main interface allows users to specify the desired penalty and optimization technique, offering a unified approach to regularized regression.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
