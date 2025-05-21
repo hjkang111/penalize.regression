@@ -15,6 +15,9 @@ check_algorithm_compatibility <- function(method, algorithm) {
   if (method == "scad" && algorithm %in% c("pgd", "fista")) {
     stop("PGD and FISTA are not suitable for non-convex SCAD penalty due to lack of convergence guarantee.")
   }
+  if (method %in% c("lasso","elasticnet","mcp", "scad") && algorithm == "newton") {
+    stop("Newton method currently supports only Ridge penalty")
+  }
 
   # Inefficient or unstable combinations – give a warning
   if (method == "ridge" && algorithm %in% c("pgd", "fista")) {
@@ -34,28 +37,27 @@ penalized_regression <- function(X, y,
                                  method = c("lasso", "ridge", "scad", "mcp", "elasticnet"),
                                  algorithm = c("GD", "CDA", "PGD", "FISTA", "NEWTON"),
                                  lambda = 1, learning_rate = 0.01, max_iter = 1000, alpha = 0.5, gamma = 3.7) {
-  # method와 algorithm 선택
   method <- match.arg(method)
   algorithm <- match.arg(algorithm)
 
-  # warning
   check_algorithm_compatibility(method, algorithm)
 
-  # 알고리즘 함수 호출 (가정: 각각 함수는 X, y, method, lambda ... 인자를 받음)
   if (algorithm == "GD") {
     return(perform_GD(X, y, method, lambda, learning_rate, max_iter))
   } else if (algorithm == "CDA") {
-    return(perform_CDA(X, y, method, lambda, max_iter))
+    return(perform_CDA(X, y, method, lambda, learning_rate, max_iter))
   } else if (algorithm == "PGD") {
     return(perform_PGD(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
   } else if (algorithm == "FISTA") {
+    # 여기서 method, alpha, gamma 모두 넘겨줘야 함
     return(perform_FISTA(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
   } else if (algorithm == "NEWTON") {
-    return(perform_NEWTON(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
+    return(perform_Newton(X, y, method, lambda, max_iter))
   } else {
     stop("Unknown algorithm selected.")
   }
 }
+
 
 
 # example
@@ -83,7 +85,48 @@ head(Data2)
 X <- as.matrix(Data2[, 1:8])
 y <- Data2[[9]]
 
-penalized_regression(as.matrix(Data2[, 1:8]), Data2[[9]], method="ridge", algorithm = "GD")
+X <- scale(X)
+y <- scale(y)
 
-str(Data2[, 1:8])
-str(Data2[[9]])
+#ridge
+penalized_regression(X, y, method="ridge", algorithm = "GD")
+penalized_regression(X, y, method="ridge", algorithm = "CDA")
+penalized_regression(X, y, method="ridge", algorithm = "PGD")
+penalized_regression(X, y, method="ridge", algorithm = "FISTA")
+penalized_regression(X, y, method="ridge", algorithm = "NEWTON")
+
+#lasso
+penalized_regression(X, y, method="lasso", algorithm = "GD")
+penalized_regression(X, y, method="lasso", algorithm = "CDA") #
+penalized_regression(X, y, method="lasso", algorithm = "PGD")
+penalized_regression(X, y, method="lasso", algorithm = "FISTA")
+penalized_regression(X, y, method="lasso", algorithm = "NEWTON")
+# gd, cda랑 값이 같고, pgd랑 fista값이 같음.. 왜 다르지
+
+#elastic net
+penalized_regression(X, y, method="elasticnet", algorithm = "GD")
+penalized_regression(X, y, method="elasticnet", algorithm = "CDA") #
+penalized_regression(X, y, method="elasticnet", algorithm = "PGD")
+penalized_regression(X, y, method="elasticnet", algorithm = "FISTA")
+penalized_regression(X, y, method="elasticnet", algorithm = "NEWTON")
+# gd, cda,pgd랑 값이 같고, fista값이 같음
+
+#mcp
+penalized_regression(X, y, method="mcp", algorithm = "GD")
+penalized_regression(X, y, method="mcp", algorithm = "CDA") #
+penalized_regression(X, y, method="mcp", algorithm = "PGD")
+penalized_regression(X, y, method="mcp", algorithm = "FISTA")
+penalized_regression(X, y, method="mcp", algorithm = "NEWTON")
+
+# scad
+penalized_regression(X, y, method="scad", algorithm = "GD")
+penalized_regression(X, y, method="scad", algorithm = "CDA") #
+penalized_regression(X, y, method="scad", algorithm = "PGD")
+penalized_regression(X, y, method="scad", algorithm = "FISTA")
+penalized_regression(X, y, method="scad", algorithm = "NEWTON")
+
+
+# 1 cda 알고리즘 수정
+# 2 알고리즘마다 반환값 왜 다른지
+# method랑 algorithm 잘 맞는지
+# 옵션값 잘 돌아가는지

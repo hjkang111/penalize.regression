@@ -54,3 +54,4 @@ penalty_function <- function(beta, method, lambda, alpha = 0.5, gamma = 3.7) {
     stop("Unknown method. Please choose one of 'lasso', 'ridge', 'elasticnet', 'scad', or 'mcp'.")
   }
 }
+

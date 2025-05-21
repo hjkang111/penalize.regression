@@ -5,24 +5,77 @@ soft_threshold <- function(z, lambda) {
   return(sign(z) * pmax(0, abs(z) - lambda))
 }
 
-# CGD
-perform_CDA <- function(X, y, method, lambda, learning_rate, max_iter) {
+mcp_proximal <- function(x, lambda, gamma) {
+  abs_x <- abs(x)
+  prox <- numeric(length(x))
+  for (i in seq_along(x)) {
+    if (abs_x[i] <= lambda * gamma) {
+      prox[i] <- sign(x[i]) * pmax(abs_x[i] - lambda, 0) / (1 - 1/gamma)
+    } else {
+      prox[i] <- x[i]
+    }
+  }
+  return(prox)
+}
+
+scad_proximal <- function(x, lambda, gamma) {
+  abs_x <- abs(x)
+  prox <- numeric(length(x))
+  for (i in seq_along(x)) {
+    if (abs_x[i] <= 2 * lambda) {
+      prox[i] <- soft_threshold(x[i], lambda)
+    } else if (abs_x[i] <= lambda * gamma) {
+      prox[i] <- ((gamma - 1) * x[i] - sign(x[i]) * gamma * lambda) / (gamma - 2)
+    } else {
+      prox[i] <- x[i]
+    }
+  }
+  return(prox)
+}
+
+elasticnet_proximal <- function(x, lambda, alpha, learning_rate) {
+  thresh <- learning_rate * lambda * alpha
+  scaled_x <- x / (1 + 2 * learning_rate * lambda * (1 - alpha))
+  return(soft_threshold(scaled_x, thresh))
+}
+
+
+# perform CDA
+perform_CDA <- function(X, y, lambda, penalty, max_iter = 1000, alpha = 1, gamma = 3.7) {
+  penalty <- tolower(penalty)  # 소문자로 통일
   n <- nrow(X)
   p <- ncol(X)
   beta <- rep(0, p)
+  r <- y - X %*% beta  # 초기 잔차
 
   for (iter in 1:max_iter) {
     for (j in 1:p) {
-      pred <- X %*% beta
-      residual <- pred - y
-      grad_j <- (2/n) * sum(X[, j] * residual) + grad_penalty(beta[j], method, lambda)
+      tmp <- r + X[, j] * beta[j]  # 잔차 복원
+      rho <- sum(X[, j] * tmp) / n
 
-      beta[j] <- beta[j] - learning_rate * grad_j
+      if (penalty == "lasso") {
+        beta_j_new <- soft_threshold(rho, lambda)
+      } else if (penalty == "ridge") {
+        beta_j_new <- rho / (1 + lambda)
+      } else if (penalty == "elasticnet") {
+        beta_j_new <- soft_threshold(rho, lambda * alpha) / (1 + lambda * (1 - alpha))
+      } else if (penalty == "scad") {
+        beta_j_new <- scad_proximal(rho, lambda, gamma)
+      } else if (penalty == "mcp") {
+        beta_j_new <- mcp_proximal(rho, lambda, gamma)
+      } else {
+        stop("Unknown penalty type.")
+      }
+
+      r <- tmp - X[, j] * beta_j_new  # 잔차 갱신
+      beta[j] <- beta_j_new
     }
   }
 
-  return(beta)
+  return(matrix(beta, ncol = 1, dimnames = list(colnames(X), NULL)))
 }
+
+
 
 
 # perform PGD
@@ -51,11 +104,27 @@ perform_PGD <- function(X, y, method, lambda, learning_rate, max_iter, alpha = 0
 
   return(beta)
 }
+######## fista 구현하기 위한 함수들
 
 
+penalty_proximal <- function(x, method, lambda, learning_rate, alpha=0.5, gamma=3.7) {
+  if (method == "lasso") {
+    return(soft_threshold(x, learning_rate * lambda))
+  } else if (method == "ridge") {
+    # Ridge는 proximal 연산 대신 단순 감쇠(scaling)
+    return(x / (1 + 2 * learning_rate * lambda))
+  } else if (method == "elasticnet") {
+    return(elasticnet_proximal(x, lambda, alpha, learning_rate))
+  } else if (method == "mcp") {
+    return(mcp_proximal(x, learning_rate * lambda, gamma))
+  } else if (method == "scad") {
+    return(scad_proximal(x, learning_rate * lambda, gamma))
+  } else {
+    stop("Unsupported penalty in proximal operator.")
+  }
+}
 
-# FISTA
-perform_FISTA <- function(X, y, lambda, learning_rate, max_iter) {
+perform_FISTA <- function(X, y, method, lambda, learning_rate, max_iter, alpha=0.5, gamma=3.7) {
   n <- nrow(X)
   p <- ncol(X)
   beta <- rep(0, p)
@@ -66,7 +135,7 @@ perform_FISTA <- function(X, y, lambda, learning_rate, max_iter) {
     pred <- X %*% z
     grad <- (2/n) * t(X) %*% (pred - y)
 
-    beta_new <- soft_threshold(z - learning_rate * grad, learning_rate * lambda)
+    beta_new <- penalty_proximal(z - learning_rate * grad, method, lambda, learning_rate, alpha, gamma)
     t_k_new <- (1 + sqrt(1 + 4 * t_k^2)) / 2
     z <- beta_new + ((t_k - 1) / t_k_new) * (beta_new - beta)
 
@@ -76,24 +145,37 @@ perform_FISTA <- function(X, y, lambda, learning_rate, max_iter) {
 
   return(beta)
 }
+################################################
 
 # Newton
-perform_Newton <- function(X, y, lambda, max_iter) {
+grad_penalty <- function(beta, lambda) {
+  return(2 * lambda * beta)
+}
+
+perform_Newton <- function(X, y, method, lambda, max_iter, ...) {
+
   n <- nrow(X)
   p <- ncol(X)
   beta <- rep(0, p)
 
   for (iter in 1:max_iter) {
     pred <- X %*% beta
-    grad <- (2/n) * t(X) %*% (pred - y)
-    hess <- (2/n) * t(X) %*% X + diag(rep(1e-6, p))  # 정칙화 추가
+    grad_loss <- (2 / n) * t(X) %*% (pred - y)
+    grad_pen <- 2 * lambda * beta
+    grad <- grad_loss + grad_pen
+
+    hess <- (2 / n) * t(X) %*% X + diag(rep(2 * lambda, p))  # Ridge Hessian
 
     beta <- beta - solve(hess) %*% grad
   }
 
-  return(as.vector(beta))
+  return(beta)
 }
 
+
+
+
+##################################################
 
 perform_GD <- function(X, y, method, lambda, learning_rate, max_iter, alpha = 0.5, gamma = 3.7) {
   n <- nrow(X)
