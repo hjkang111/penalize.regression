@@ -2,28 +2,32 @@
 
 # check algorithm
 check_algorithm_compatibility <- function(method, algorithm) {
-  # SCAD, MCP는 PGD, FISTA, NEWTON과 함께 쓰면 수렴 문제 가능
-  if (method %in% c("scad", "mcp") && algorithm %in% c("PGD", "FISTA")) {
-    warning(sprintf("Algorithm '%s' may have convergence issues with '%s' penalty due to non-convexity. Use with caution.", algorithm, method))
+  method <- tolower(method)
+  algorithm <- tolower(algorithm)
+
+  # Incompatible combinations – stop with error
+  if (method == "ridge" && algorithm == "cda") {
+    stop("CDA is not applicable to Ridge (L2) penalty because it assumes an L1 structure.")
+  }
+  if (method == "mcp" && algorithm %in% c("pgd", "fista")) {
+    stop("PGD and FISTA are not suitable for non-convex MCP penalty due to lack of convergence guarantee.")
+  }
+  if (method == "scad" && algorithm %in% c("pgd", "fista")) {
+    stop("PGD and FISTA are not suitable for non-convex SCAD penalty due to lack of convergence guarantee.")
   }
 
-  if (method %in% c("scad", "mcp") && algorithm == "NEWTON") {
-    warning(sprintf("Algorithm '%s' may not converge reliably with non-convex '%s' penalty. Consider alternative algorithms.", algorithm, method))
+  # Inefficient or unstable combinations – give a warning
+  if (method == "ridge" && algorithm %in% c("pgd", "fista")) {
+    warning("PGD or FISTA may be inefficient for convex Ridge penalty. Consider using GD or NEWTON instead.")
   }
-
-  # Ridge + PGD, FISTA는 비효율적일 수 있음
-  if (method == "ridge" && algorithm %in% c("PGD", "FISTA")) {
-    warning(sprintf("Algorithm '%s' is typically inefficient for convex '%s' penalty. Consider GD or NEWTON instead.", algorithm, method))
+  if (method %in% c("mcp", "scad") && algorithm == "gd") {
+    warning("GD may be slow or unstable with non-convex penalties such as SCAD or MCP.")
   }
-
-  # GD + SCAD, MCP: 가능하지만 느리고 불안정할 수 있음
-  if (method %in% c("scad", "mcp") && algorithm == "GD") {
-    warning(sprintf("Algorithm '%s' may converge slowly or unstably with non-convex '%s' penalty. Use carefully.", algorithm, method))
+  if (method %in% c("mcp", "scad") && algorithm == "newton") {
+    warning("NEWTON may not converge reliably for non-convex penalties such as SCAD or MCP.")
   }
-
-  # NEWTON + Lasso, Elastic Net은 경고 불필요 (볼록 문제)
-  # 별도 처리 안 함 (필요 시 추가 가능)
 }
+
 
 
 penalized_regression <- function(X, y,
