@@ -41,8 +41,7 @@ elasticnet_proximal <- function(x, lambda, alpha, learning_rate) {
 
 
 # perform CDA
-perform_CDA <- function(X, y, lambda, penalty, max_iter = 1000, alpha = 1, gamma = 3.7) {
-  penalty <- tolower(penalty)  # 소문자로 통일
+perform_CDA <- function(X, y,method, lambda, max_iter = 1000, alpha = 1, gamma = 3.7) {
   n <- nrow(X)
   p <- ncol(X)
   beta <- rep(0, p)
@@ -53,15 +52,15 @@ perform_CDA <- function(X, y, lambda, penalty, max_iter = 1000, alpha = 1, gamma
       tmp <- r + X[, j] * beta[j]  # 잔차 복원
       rho <- sum(X[, j] * tmp) / n
 
-      if (penalty == "lasso") {
+      if (method == "lasso") {
         beta_j_new <- soft_threshold(rho, lambda)
-      } else if (penalty == "ridge") {
+      } else if (method == "ridge") {
         beta_j_new <- rho / (1 + lambda)
-      } else if (penalty == "elasticnet") {
+      } else if (method == "elasticnet") {
         beta_j_new <- soft_threshold(rho, lambda * alpha) / (1 + lambda * (1 - alpha))
-      } else if (penalty == "scad") {
+      } else if (method == "scad") {
         beta_j_new <- scad_proximal(rho, lambda, gamma)
-      } else if (penalty == "mcp") {
+      } else if (method == "mcp") {
         beta_j_new <- mcp_proximal(rho, lambda, gamma)
       } else {
         stop("Unknown penalty type.")
