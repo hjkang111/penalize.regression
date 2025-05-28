@@ -14,49 +14,78 @@ fontsize: 8pt
 institute: The Three Sisters of Newton \newline School of Mathematics, Statistics and Data Science \newline Sungshin Women's University
 header-includes: \input{header_includes.tex}
 ---
-# Introduction
+\section{Introduction}
 
-## Introduction with penalize regression
+# Introduction with penalize regression
+- A decision tree is a predictive model that splits the input space into regions using simple decision rules.
+<!--\begin{align*}
+\min_{\boldsymbol{\beta}} \left\{\frac{1}{2n} \left\| \mathbf{y} - \mathbf{X} \boldsymbol{\beta} \right\|^2+\sum_{j=1}^p P_\lambda(|\beta_j|) \right\}
+\end{align*}-->
+
+
+
+
+## Penalize Regression Method
+- Ridge
+
+- Lasso
+
+- Elastic Net
+
+- MCP
+
+- SCAD
+
+# Penalize Regression - Ridge
+$$
+\frac{1}{2n} || y-X \beta|| + \lambda ||\beta||_2^2
+$$
+- Object function of ridge is strictly convex thus we can consider convex optimization problem
+- Ridge method has a closed form
+
+# Penalize Regression - Lasso
+$$
+\frac{1}{2n} || y-X \beta|| + \lambda ||\beta||_1
+$$
+- Objective function of lasso is convex, not strictly convex, we can consider convex optimization problem
+
+- But it is difficult to considered as differenitable algorithms
+
+# Penalize Regression - Elastic Net
+$$
+\frac{1}{2n} || y-X \beta|| + \lambda_1 ||\beta||_1 + \lambda_2 ||\beta||_2^2 
+$$
+- Elastic net 은 ridge와 lasso의 penalty term을 합친 형태이다
+- Objective function of elastic net is convex, ..내용 추가
+
+
+# Penalize Regression - Minimax Concave Penalty (MCP)
 - A decision tree is a predictive model that splits the input space into regions using simple decision rules.
 
-# Penalize Regression Method
-
-## Penalize Regression - Ridge
-- A decision tree is a predictive model that splits the input space into regions using simple decision rules.
-
-## Penalize Regression - Lasso
-- A decision tree is a predictive model that splits the input space into regions using simple decision rules.
-
-## Penalize Regression - Elastic Net
-- A decision tree is a predictive model that splits the input space into regions using simple decision rules.
-
-## Penalize Regression - MCP
-- A decision tree is a predictive model that splits the input space into regions using simple decision rules.
-
-## Penalize Regression - SCAD
+# Penalize Regression - Smoothing Clipped Absolute Deviation (SCAD)
 - A decision tree is a predictive model that splits the input space into regions using simple decision rules.
 
 
-# Algorithms
+## Algorithms
 
-## Gradient Descent Algorithm (GD)
+# Gradient Descent Algorithm (GD)
 - A decision tree is a predictive model that splits the input space into regions using simple decision rules.
 
-## Coordinate Descent Algorithm (CDA)
+# Coordinate Descent Algorithm (CDA)
 - A decision tree is a predictive model that splits the input space into regions using simple decision rules.
 
-## Projected Gradient Descent Algorithm (PGD)
+# Projected Gradient Descent Algorithm (PGD)
 - A decision tree is a predictive model that splits the input space into regions using simple decision rules.
 
-## Fast Iterative Soft-Thresholding Algorithm (FISTA)
+# Fast Iterative Soft-Thresholding Algorithm (FISTA)
 - A decision tree is a predictive model that splits the input space into regions using simple decision rules.
 
-## Newton-Raphson Algorithm (NR)
+# Newton-Raphson Algorithm (NR)
 - A decision tree is a predictive model that splits the input space into regions using simple decision rules.
 
-# R Package
+## R Package
 
-## Functions
+# Functions
 ```{r}
 sq.loss <- function(y) {
   y.bar <- mean(y)

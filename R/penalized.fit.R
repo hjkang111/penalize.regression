@@ -5,29 +5,14 @@ check_algorithm_compatibility <- function(method, algorithm) {
   method <- tolower(method)
   algorithm <- tolower(algorithm)
 
-  # Incompatible combinations – stop with error
   if (method == "ridge" && algorithm == "cda") {
-    stop("CDA is not applicable to Ridge (L2) penalty because it assumes an L1 structure.")
+    warning("CDA may not be the most appropriate choice for Ridge penalty.")
   }
-  if (method == "mcp" && algorithm %in% c("pgd", "fista")) {
-    stop("PGD and FISTA are not suitable for non-convex MCP penalty due to lack of convergence guarantee.")
+  if (method %in% c("scad", "mcp") && algorithm == "fista") {
+    stop("FISTA is not recommended for non-convex penalties like SCAD or MCP.")
   }
-  if (method == "scad" && algorithm %in% c("pgd", "fista")) {
-    stop("PGD and FISTA are not suitable for non-convex SCAD penalty due to lack of convergence guarantee.")
-  }
-  if (method %in% c("lasso","elasticnet","mcp", "scad") && algorithm == "newton") {
-    stop("Newton method currently supports only Ridge penalty")
-  }
-
-  # Inefficient or unstable combinations – give a warning
-  if (method == "ridge" && algorithm %in% c("pgd", "fista")) {
-    warning("PGD or FISTA may be inefficient for convex Ridge penalty. Consider using GD or NEWTON instead.")
-  }
-  if (method %in% c("mcp", "scad") && algorithm == "gd") {
-    warning("GD may be slow or unstable with non-convex penalties such as SCAD or MCP.")
-  }
-  if (method %in% c("mcp", "scad") && algorithm == "newton") {
-    warning("NEWTON may not converge reliably for non-convex penalties such as SCAD or MCP.")
+  if (!method %in% c("scad", "mcp") && algorithm == "lla") {
+    warning("LLA is primarily designed for SCAD or MCP penalties and may not be optimal for Ridge, Lasso, or Elastic Net.")
   }
 }
 
@@ -35,28 +20,25 @@ check_algorithm_compatibility <- function(method, algorithm) {
 
 penalized_regression <- function(X, y,
                                  method = c("lasso", "ridge", "scad", "mcp", "elasticnet"),
-                                 algorithm = c("GD", "CDA", "PGD", "FISTA", "NEWTON"),
-                                 lambda = 1, learning_rate = 0.01, max_iter = 1000, alpha = 0.5, gamma = 3.7) {
+                                 algorithm = c("cda", "fista", "lla"),
+                                 lambda = 1, learning_rate = 0.01,
+                                 max_iter = 1000, alpha = 0.5, gamma = 3.7) {
   method <- match.arg(method)
   algorithm <- match.arg(algorithm)
 
   check_algorithm_compatibility(method, algorithm)
 
-  if (algorithm == "GD") {
-    return(perform_GD(X, y, method, lambda, learning_rate, max_iter))
-  } else if (algorithm == "CDA") {
-    return(perform_CDA(X, y, method, lambda, learning_rate, max_iter))
-  } else if (algorithm == "PGD") {
-    return(perform_PGD(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
-  } else if (algorithm == "FISTA") {
-    # 여기서 method, alpha, gamma 모두 넘겨줘야 함
+  if (algorithm == "cda") {
+    return(perform_CDA(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
+  } else if (algorithm == "fista") {
     return(perform_FISTA(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
-  } else if (algorithm == "NEWTON") {
-    return(perform_Newton(X, y, method, lambda, max_iter))
+  } else if (algorithm == "lla") {
+    return(perform_LLA(X, y, method, lambda, max_iter, gamma))
   } else {
     stop("Unknown algorithm selected.")
   }
 }
+
 
 
 
@@ -89,44 +71,31 @@ X <- scale(X)
 y <- scale(y)
 
 #ridge
-penalized_regression(X, y, method="ridge", algorithm = "GD")
-penalized_regression(X, y, method="ridge", algorithm = "CDA")
-penalized_regression(X, y, method="ridge", algorithm = "PGD")
-penalized_regression(X, y, method="ridge", algorithm = "FISTA")
-penalized_regression(X, y, method="ridge", algorithm = "NEWTON")
+penalized_regression(X, y, method="ridge", algorithm = "cda")
+penalized_regression(X, y, method="ridge", algorithm = "fista")
+penalized_regression(X, y, method="ridge", algorithm = "lla")
 
 #lasso
-penalized_regression(X, y, method="lasso", algorithm = "GD")
-penalized_regression(X, y, method="lasso", algorithm = "CDA") #
-penalized_regression(X, y, method="lasso", algorithm = "PGD")
-penalized_regression(X, y, method="lasso", algorithm = "FISTA")
-penalized_regression(X, y, method="lasso", algorithm = "NEWTON")
+penalized_regression(X, y, method="lasso", algorithm = "cda")
+penalized_regression(X, y, method="lasso", algorithm = "fista") #
+penalized_regression(X, y, method="lasso", algorithm = "lla")
 # gd, cda랑 값이 같고, pgd랑 fista값이 같음.. 왜 다르지
 
 #elastic net
-penalized_regression(X, y, method="elasticnet", algorithm = "GD")
-penalized_regression(X, y, method="elasticnet", algorithm = "CDA") #
-penalized_regression(X, y, method="elasticnet", algorithm = "PGD")
-penalized_regression(X, y, method="elasticnet", algorithm = "FISTA")
-penalized_regression(X, y, method="elasticnet", algorithm = "NEWTON")
+penalized_regression(X, y, method="elasticnet", algorithm = "cda")
+penalized_regression(X, y, method="elasticnet", algorithm = "fista") #
+penalized_regression(X, y, method="elasticnet", algorithm = "lla")
 # gd, cda,pgd랑 값이 같고, fista값이 같음
 
 #mcp
-penalized_regression(X, y, method="mcp", algorithm = "GD")
-penalized_regression(X, y, method="mcp", algorithm = "CDA") #
-penalized_regression(X, y, method="mcp", algorithm = "PGD")
-penalized_regression(X, y, method="mcp", algorithm = "FISTA")
-penalized_regression(X, y, method="mcp", algorithm = "NEWTON")
+penalized_regression(X, y, method="mcp", algorithm = "cda")
+penalized_regression(X, y, method="mcp", algorithm = "fista") #
+penalized_regression(X, y, method="mcp", algorithm = "lla")
 
 # scad
-penalized_regression(X, y, method="scad", algorithm = "GD")
-penalized_regression(X, y, method="scad", algorithm = "CDA") #
-penalized_regression(X, y, method="scad", algorithm = "PGD")
-penalized_regression(X, y, method="scad", algorithm = "FISTA")
-penalized_regression(X, y, method="scad", algorithm = "NEWTON")
+penalized_regression(X, y, method="scad", algorithm = "cda")
+penalized_regression(X, y, method="scad", algorithm = "fista") #
+penalized_regression(X, y, method="scad", algorithm = "lla")
 
 
-# 1 cda 알고리즘 수정
-# 2 알고리즘마다 반환값 왜 다른지
-# method랑 algorithm 잘 맞는지
-# 옵션값 잘 돌아가는지
+# 1 cda
