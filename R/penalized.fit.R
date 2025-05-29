@@ -79,7 +79,6 @@ penalized_regression(X, y, method="ridge", algorithm = "lla")
 penalized_regression(X, y, method="lasso", algorithm = "cda")
 penalized_regression(X, y, method="lasso", algorithm = "fista") #
 penalized_regression(X, y, method="lasso", algorithm = "lla")
-# gd, cda랑 값이 같고, pgd랑 fista값이 같음.. 왜 다르지
 
 #elastic net
 penalized_regression(X, y, method="elasticnet", algorithm = "cda")
@@ -94,8 +93,5 @@ penalized_regression(X, y, method="mcp", algorithm = "lla")
 
 # scad
 penalized_regression(X, y, method="scad", algorithm = "cda")
-penalized_regression(X, y, method="scad", algorithm = "fista") #
+penalized_regression(X, y, method="scad", algorithm = "fista")
 penalized_regression(X, y, method="scad", algorithm = "lla")
-
-
-# 1 cda
