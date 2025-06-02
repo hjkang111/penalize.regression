@@ -17,7 +17,6 @@ check_algorithm_compatibility <- function(method, algorithm) {
 }
 
 
-
 penalized_regression <- function(X, y,
                                  method = c("lasso", "ridge", "scad", "mcp", "elasticnet"),
                                  algorithm = c("cda", "fista", "lla"),
@@ -33,7 +32,7 @@ penalized_regression <- function(X, y,
   } else if (algorithm == "fista") {
     return(perform_FISTA(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
   } else if (algorithm == "lla") {
-    return(perform_LLA(X, y, method, lambda, max_iter, gamma))
+    return(perform_LLA(X, y, method, lambda, learning_rate, max_iter, gamma))
   } else {
     stop("Unknown algorithm selected.")
   }
@@ -72,7 +71,7 @@ y <- scale(y)
 
 #ridge
 penalized_regression(X, y, method="ridge", algorithm = "cda")
-penalized_regression(X, y, method="ridge", algorithm = "fista")
+penalized_regression(X, y, method="ridge", algorithm = "fista") #
 penalized_regression(X, y, method="ridge", algorithm = "lla")
 
 #lasso
@@ -87,11 +86,24 @@ penalized_regression(X, y, method="elasticnet", algorithm = "lla")
 # gd, cda,pgd랑 값이 같고, fista값이 같음
 
 #mcp
-penalized_regression(X, y, method="mcp", algorithm = "cda")
-penalized_regression(X, y, method="mcp", algorithm = "fista") #
-penalized_regression(X, y, method="mcp", algorithm = "lla")
+beta_hat <- penalized_regression(X, y, method="mcp", algorithm = "cda")
+beta_hat <- penalized_regression(X, y, method="mcp", algorithm = "fista") #
+beta_hat <- penalized_regression(X, y, method="mcp", algorithm = "lla") #
 
 # scad
-penalized_regression(X, y, method="scad", algorithm = "cda")
-penalized_regression(X, y, method="scad", algorithm = "fista")
-penalized_regression(X, y, method="scad", algorithm = "lla")
+beta_hat <- penalized_regression(X, y, method="scad", algorithm = "cda")
+
+y_pred <- X %*% beta_hat
+
+# MSE 계산
+mean((y - y_pred)^2)
+
+
+beta_hat <- penalized_regression(X, y, method="scad", algorithm = "fista")
+beta_hat <- penalized_regression(X, y, method="scad", algorithm = "lla")
+
+
+lambda_seq <- seq(0.1, 2, length.out = 50)
+plot_LASSO(X,y,lambda_seq)
+length(X)
+length(y)

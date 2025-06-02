@@ -234,7 +234,7 @@ penalty_gradient <- function(beta, method, lambda, alpha = 0.5, gamma = 3.7) {
 # FISTA X
 # Non-convex algorithms'''
 
-
+rm(list=ls())
 
 perform_CDA <- function(X, y, method, lambda, learning_rate = 0.01, max_iter = 1000, alpha = 0.5, gamma = 3.7) {
   n <- nrow(X)
@@ -274,7 +274,10 @@ perform_CDA <- function(X, y, method, lambda, learning_rate = 0.01, max_iter = 1
 
       } else if (method == "mcp") {
         z <- rho_j / XX[j]
-        if (abs(z) <= gamma * lambda) {
+        abj <- abs(z)
+
+        # MCP 업데이트 처리
+        if (abj <= gamma * lambda) {
           beta[j] <- soft_threshold(z, lambda / XX[j]) / (1 - 1 / gamma)
         } else {
           beta[j] <- z
@@ -283,63 +286,6 @@ perform_CDA <- function(X, y, method, lambda, learning_rate = 0.01, max_iter = 1
       } else {
         stop("Unsupported method in CDA.")
       }
-    }
-  }
-
-  return(beta)
-}
-
-
-perform_LLA <- function(X, y, method, lambda, learning_rate = 0.01, max_iter = 100, alpha = 0.5, gamma = 3.7) {
-  n <- nrow(X)
-  p <- ncol(X)
-  beta <- rep(0, p)
-  tol <- 1e-4
-
-  for (iter in 1:max_iter) {
-    weights <- rep(1, p)
-
-    for (j in 1:p) {
-      bj <- beta[j]
-
-      if (method == "lasso") {
-        weights[j] <- 1
-
-      } else if (method == "ridge") {
-        weights[j] <- 2 * abs(bj)
-
-      } else if (method == "elasticnet") {
-        weights[j] <- alpha + 2 * (1 - alpha) * abs(bj)
-
-      } else if (method == "scad") {
-        abj <- abs(bj)
-        if (abj <= lambda) {
-          weights[j] <- 1
-        } else if (abj <= gamma * lambda) {
-          weights[j] <- (gamma * lambda - abj) / ((gamma - 1) * lambda)
-        } else {
-          weights[j] <- 0
-        }
-
-      } else if (method == "mcp") {
-        abj <- abs(bj)
-        if (abj <= gamma * lambda) {
-          weights[j] <- 1 - abj / (gamma * lambda)
-        } else {
-          weights[j] <- 0
-        }
-
-      } else {
-        stop("Unsupported method in LLA.")
-      }
-    }
-
-    # Solve weighted L1 problem (adaptive lasso)
-    for (j in 1:p) {
-      r_j <- y - X %*% beta + X[, j] * beta[j]
-      rho_j <- sum(X[, j] * r_j)
-      XX_j <- sum(X[, j]^2)
-      beta[j] <- sign(rho_j) * max(0, abs(rho_j) - lambda * weights[j]) / XX_j
     }
   }
 
@@ -397,18 +343,14 @@ perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3, max_iter =
 
     beta_new <- numeric(p)
     for (j in 1:p) {
-      # FISTA는 proximal gradient이므로, ridge는 특이하게 soft thresholding이 아님
       if (method == "ridge") {
         beta_new[j] <- z[j] - learning_rate * (grad_z[j] + 2 * lambda * z[j])
       } else if (method %in% c("lasso", "elasticnet")) {
-        pen_grad <- lambda * (
-          if (method == "lasso") sign(z[j])
-          else alpha * sign(z[j]) + 2 * (1 - alpha) * z[j]
-        )
+        pen_grad <- lambda * (if (method == "lasso") sign(z[j])
+                              else alpha * sign(z[j]) + 2 * (1 - alpha) * z[j])
         beta_new[j] <- soft_threshold(z[j] - learning_rate * grad_z[j], learning_rate * lambda * alpha)
       } else if (method %in% c("scad", "mcp")) {
-        beta_new[j] <- soft_threshold(z[j] - learning_rate * grad_z[j],
-                                      learning_rate * abs(penalty_grad(z[j])))
+        beta_new[j] <- soft_threshold(z[j] - learning_rate * grad_z[j], learning_rate * abs(penalty_grad(z[j])))
       } else {
         stop("Unsupported method in FISTA.")
       }
@@ -417,6 +359,56 @@ perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3, max_iter =
     beta_old <- beta
     beta <- beta_new
     t <- t + 1
+  }
+
+  return(beta)
+}
+
+perform_LLA <- function(X, y, method, lambda, learning_rate = 0.01, max_iter = 100, alpha = 0.5, gamma = 3.7) {
+  n <- nrow(X)
+  p <- ncol(X)
+  beta <- rep(0, p)
+  tol <- 1e-4
+
+  for (iter in 1:max_iter) {
+    weights <- rep(1, p)
+
+    for (j in 1:p) {
+      bj <- beta[j]
+
+      if (method == "lasso") {
+        weights[j] <- 1
+      } else if (method == "ridge") {
+        weights[j] <- 2 * abs(bj)
+      } else if (method == "elasticnet") {
+        weights[j] <- alpha + 2 * (1 - alpha) * abs(bj)
+      } else if (method == "scad") {
+        abj <- abs(bj)
+        if (abj <= lambda) {
+          weights[j] <- 1
+        } else if (abj <= gamma * lambda) {
+          weights[j] <- (gamma * lambda - abj) / ((gamma - 1) * lambda)
+        } else {
+          weights[j] <- 0
+        }
+      } else if (method == "mcp") {
+        abj <- abs(bj)
+        if (abj <= gamma * lambda) {
+          weights[j] <- 1 - abj / (gamma * lambda)
+        } else {
+          weights[j] <- 0
+        }
+      } else {
+        stop("Unsupported method in LLA.")
+      }
+    }
+
+    for (j in 1:p) {
+      r_j <- y - X %*% beta + X[, j] * beta[j]
+      rho_j <- sum(X[, j] * r_j)
+      XX_j <- sum(X[, j]^2)
+      beta[j] <- sign(rho_j) * max(0, abs(rho_j) - lambda * weights[j]) / XX_j
+    }
   }
 
   return(beta)
