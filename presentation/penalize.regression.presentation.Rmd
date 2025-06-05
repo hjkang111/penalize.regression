@@ -1,7 +1,7 @@
 ---
 title: "Penalize Regression with R Package"
 subtitle: |
-  A penalized regression approach implemented separately for each algorithm
+  Flexible Penalized Regression with Multiple Penalties and Solvers algorithm
 author: "JuHyun Kang"
 date: "June 6, 2025"
 output:
@@ -161,7 +161,7 @@ y^{k+1} &= \beta_{k+1} + \frac{t_k - 1}{t_{k+1}}\left( \beta_{k+1} - \beta_k \ri
 where \( \operatorname{prox}_{\eta P_{\lambda}} \) is the proximal operator (often implemented as a soft-thresholding function when \( P_{\lambda} \) is the \( \ell_1 \) norm as in the Lasso)
 
 ## Local Linear Approximation Algorithm (LLA)
-The Local Linear Approximation (LLA) algorithm is used to handle non-convex penalties, such as SCAD and MCP, by approximating the penalty function locally with a linear function
+- The Local Linear Approximation (LLA) algorithm is used to handle non-convex penalties, such as SCAD and MCP, by approximating the penalty function locally with a linear function
 \vt
 - This transforms the original non-convex optimization problem into a series of convex problems, which are easier to solve
 \vt
@@ -183,7 +183,7 @@ $$
 
 # R Package
 
-## Form of Penalize Regression Function
+## Penalize Regression Function (Part 1)
 ```{r,eval=FALSE}
 penalized_regression <- function(X, y,
                                  method = c("lasso", "ridge", 
@@ -197,7 +197,7 @@ penalized_regression <- function(X, y,
   check_algorithm_compatibility(method, algorithm)
 ```
 
-## Implementation of Penalized Regression by Algorithm
+## Penalized Regression Function (Part 2)
 ```{r,eval=FALSE}
   if (algorithm == "cda") {
     return(perform_CDA(X, y, method, lambda, learning_rate, 
@@ -255,7 +255,7 @@ perform_CDA <- function(X, y, method, lambda, learning_rate = 0.01,
       rho_j <- sum(X[, j] * r_j)
 ```
 
-## Penalty Updates in CDA (Part 1)
+## CDA Function - Penalty Updates (Part 1)
 ```{r,eval=FALSE}
       if (method == "lasso") {
         beta[j] <- soft_threshold(rho_j / XX[j], lambda / XX[j])
@@ -278,14 +278,13 @@ perform_CDA <- function(X, y, method, lambda, learning_rate = 0.01,
           beta[j] <- z}
 ```
 
-## Penalty Updates in CDA (Part 2)
+## CDA Function - Penalty Updates (Part 2)
 ```{r, eval=FALSE}
 
       } else if (method == "mcp") {
         z <- rho_j / XX[j]
         abj <- abs(z)
 
-        # MCP 업데이트
         if (abj <= gamma * lambda) {
           beta[j] <- soft_threshold(z, lambda / XX[j]) / (1 - 1 / gamma)
         } else {
@@ -297,7 +296,6 @@ perform_CDA <- function(X, y, method, lambda, learning_rate = 0.01,
       }
     }
   }
-
   return(beta)
 }
 ```
@@ -319,15 +317,15 @@ perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3,
   }
 
   grad <- function(beta) {
-    -t(X) %*% (y - X %*% beta)
+    -t(X) %*% (y - X %*% beta) / n  
   }
+```
+## FISTA Function - Gradient Calculation by Penalty
+```{r, eval=FALSE}
   penalty_grad <- function(beta_j) {
     if (method == "lasso") {
       return(lambda * sign(beta_j))
-```
-
-## Penalty Gradient Definitions in FISTA (Part 1)
-```{r,eval=FALSE}
+      
     } else if (method == "ridge") {
       return(2 * lambda * beta_j)
       
@@ -335,20 +333,16 @@ perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3,
       return(lambda * (alpha * sign(beta_j) + 2 * (1 - alpha) * beta_j))
       
     } else if (method == "scad") {
-      
       abj <- abs(beta_j)
       if (abj <= lambda) {
         return(lambda * sign(beta_j))
-        
       } else if (abj <= gamma * lambda) {
         return(((gamma * lambda - abj) / (gamma - 1)) * sign(beta_j))
-        
       } else {
         return(0)
       }
 ```
-
-## Penalty Gradient Definitions in FISTA (Part 2)
+## FISTA Function - Gradient for MCP Penalty
 ```{r, eval=FALSE}
     } else if (method == "mcp") {
       abj <- abs(beta_j)
@@ -365,33 +359,54 @@ perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3,
   for (k in 1:max_iter) {
     z <- beta + ((t - 1) / (t + 2)) * (beta - beta_old)
     grad_z <- grad(z)
-        beta_new <- numeric(p)
+
+    beta_new <- numeric(p)
+```
+## FISTA Function - Updating Coefficients
+```{r, eval=FALSE}
     for (j in 1:p) {
       if (method == "ridge") {
-        beta_new[j] <- z[j] - learning_rate * (grad_z[j] + 2 * lambda*z[j])
-```
+        # Ridge not need to soft-thresholding
+        beta_new[j] <- z[j] - learning_rate * (grad_z[j] + 2 * lambda * z[j])
 
-## Iterative Updates in FISTA: Gradient and Thresholding Steps
-```{r,eval=FALSE}
       } else if (method %in% c("lasso", "elasticnet")) {
-        pen_grad <- lambda * (if (method == "lasso") sign(z[j])
-                              else alpha * sign(z[j]) + 2 * (1 - alpha)
-                              * z[j])
+        # In elasticnet, threshold value is learning_rate * lambda * alpha 
+        thresh <- learning_rate * lambda * alpha
+
+        # Soft thresholding Gradient step
         beta_new[j] <- soft_threshold(z[j] - learning_rate * grad_z[j], 
-                                      learning_rate * lambda * alpha)
+                                      thresh)
+
       } else if (method %in% c("scad", "mcp")) {
+        # Compute threshold: learning_rate * |penalty gradient
+        pen_grad_val <- penalty_grad(z[j])
+        thresh <- learning_rate * abs(pen_grad_val)
+
+        # If the threshold is 0, soft-thresholding has no effect
+        # so set threshold to 0
+        if (thresh < 1e-12) thresh <- 0
+```
+## FISTA Function - Convergence Check and Output
+```{r, eval=FALSE}
         beta_new[j] <- soft_threshold(z[j] - learning_rate * grad_z[j], 
-                                      learning_rate * abs(penalty_grad(z[j])))
+                                      thresh)
+
       } else {
         stop("Unsupported method in FISTA.")
       }
     }
-        beta_old <- beta
+
+    beta_old <- beta
     beta <- beta_new
     t <- t + 1
-  }return(beta)}
-```
 
+    # Optional: Check for convergence - stop if changes are small
+    if (sqrt(sum((beta - beta_old)^2)) < 1e-6) break
+  }
+
+  return(beta)
+}
+```
 
 
 ## Local Linear Approximation (LLA) Function
@@ -417,7 +432,7 @@ perform_LLA <- function(X, y, method, lambda, learning_rate = 0.01,
         weights[j] <- alpha + 2 * (1 - alpha) * abs(bj)
 ```
 
-## Weight Computation in LLA: Penalty-Specific Weights
+## LLA Function - Calculating Weights for Each Penalty
 ```{r,eval=FALSE}
       } else if (method == "scad") {
         abj <- abs(bj)
@@ -439,7 +454,7 @@ perform_LLA <- function(X, y, method, lambda, learning_rate = 0.01,
         stop("Unsupported method in LLA.")
 ```
 
-## Coefficient Updates in LLA: Weighted Penalization
+## LLA Function - Updating Coefficients
 ```{r,eval=FALSE}
       }
     }
@@ -458,9 +473,325 @@ perform_LLA <- function(X, y, method, lambda, learning_rate = 0.01,
 ```
 
 
-<!--# Simulation
+# Simulation
 
-## Data-->
+```{r, echo=FALSE, results='hide'}
+perform_CDA <- function(X, y, method, lambda, learning_rate = 0.01, max_iter = 1000, alpha = 0.5, gamma = 3.7) {
+  n <- nrow(X)
+  p <- ncol(X)
+  beta <- rep(0, p)
+  Xy <- t(X) %*% y
+  XX <- colSums(X^2)
+
+  soft_threshold <- function(z, t) {
+    sign(z) * pmax(0, abs(z) - t)
+  }
+
+  for (iter in 1:max_iter) {
+    for (j in 1:p) {
+      r_j <- y - X %*% beta + X[, j] * beta[j]
+      rho_j <- sum(X[, j] * r_j)
+
+      if (method == "lasso") {
+        beta[j] <- soft_threshold(rho_j / XX[j], lambda / XX[j])
+
+      } else if (method == "ridge") {
+        beta[j] <- rho_j / (XX[j] + 2 * lambda)
+
+      } else if (method == "elasticnet") {
+        z <- rho_j / XX[j]
+        beta[j] <- soft_threshold(z, lambda * alpha / XX[j]) / (1 + lambda * (1 - alpha) / XX[j])
+
+      } else if (method == "scad") {
+        z <- rho_j / XX[j]
+        if (abs(z) <= lambda) {
+          beta[j] <- soft_threshold(z, lambda / XX[j])
+        } else if (abs(z) <= gamma * lambda) {
+          beta[j] <- soft_threshold(z, gamma * lambda / (gamma - 1) / XX[j])
+        } else {
+          beta[j] <- z
+        }
+
+      } else if (method == "mcp") {
+        z <- rho_j / XX[j]
+        abj <- abs(z)
+
+        # MCP 업데이트 처리
+        if (abj <= gamma * lambda) {
+          beta[j] <- soft_threshold(z, lambda / XX[j]) / (1 - 1 / gamma)
+        } else {
+          beta[j] <- z
+        }
+
+      } else {
+        stop("Unsupported method in CDA.")
+      }
+    }
+  }
+
+  return(beta)
+}
+
+
+perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3, max_iter = 1000, alpha = 0.5, gamma = 3.7) {
+  n <- nrow(X)
+  p <- ncol(X)
+
+  beta <- rep(0, p)
+  beta_old <- beta
+  t <- 1
+
+  soft_threshold <- function(z, t) {
+    sign(z) * pmax(0, abs(z) - t)
+  }
+
+  grad <- function(beta) {
+    -t(X) %*% (y - X %*% beta) / n  # 평균 gradient로 수정 (더 안정적)
+  }
+
+  penalty_grad <- function(beta_j) {
+    if (method == "lasso") {
+      return(lambda * sign(beta_j))
+    } else if (method == "ridge") {
+      return(2 * lambda * beta_j)
+    } else if (method == "elasticnet") {
+      return(lambda * (alpha * sign(beta_j) + 2 * (1 - alpha) * beta_j))
+    } else if (method == "scad") {
+      abj <- abs(beta_j)
+      if (abj <= lambda) {
+        return(lambda * sign(beta_j))
+      } else if (abj <= gamma * lambda) {
+        return(((gamma * lambda - abj) / (gamma - 1)) * sign(beta_j))
+      } else {
+        return(0)
+      }
+    } else if (method == "mcp") {
+      abj <- abs(beta_j)
+      if (abj <= gamma * lambda) {
+        return(lambda * (1 - abj / (gamma * lambda)) * sign(beta_j))
+      } else {
+        return(0)
+      }
+    } else {
+      stop("Unsupported method.")
+    }
+  }
+
+  for (k in 1:max_iter) {
+    z <- beta + ((t - 1) / (t + 2)) * (beta - beta_old)
+    grad_z <- grad(z)
+
+    beta_new <- numeric(p)
+
+    for (j in 1:p) {
+      if (method == "ridge") {
+        # Ridge는 L2 페널티가 부드럽기 때문에 soft-thresholding 필요 없음
+        beta_new[j] <- z[j] - learning_rate * (grad_z[j] + 2 * lambda * z[j])
+
+      } else if (method %in% c("lasso", "elasticnet")) {
+        # Elasticnet에서 threshold 값은 learning_rate * lambda * alpha 이므로 명확히 지정
+        thresh <- learning_rate * lambda * alpha
+
+        # Gradient step 후 soft thresholding
+        beta_new[j] <- soft_threshold(z[j] - learning_rate * grad_z[j], thresh)
+
+      } else if (method %in% c("scad", "mcp")) {
+        # 페널티 기울기 절댓값에 learning_rate 곱해 임계값 생성
+        pen_grad_val <- penalty_grad(z[j])
+        thresh <- learning_rate * abs(pen_grad_val)
+
+        # 임계값이 0일 경우 soft_threshold 의미 없음 -> threshold 0으로 수정
+        if (thresh < 1e-12) thresh <- 0
+
+        beta_new[j] <- soft_threshold(z[j] - learning_rate * grad_z[j], thresh)
+
+      } else {
+        stop("Unsupported method in FISTA.")
+      }
+    }
+
+    # 업데이트
+    beta_old <- beta
+    beta <- beta_new
+    t <- t + 1
+
+    # 수렴 체크(선택적) - 변경량이 작으면 중단
+    if (sqrt(sum((beta - beta_old)^2)) < 1e-6) break
+  }
+
+  return(beta)
+}
+
+
+perform_LLA <- function(X, y, method, lambda, learning_rate = 0.01, max_iter = 100, alpha = 0.5, gamma = 3.7) {
+  n <- nrow(X)
+  p <- ncol(X)
+  beta <- rep(0, p)
+  tol <- 1e-4
+
+  for (iter in 1:max_iter) {
+    weights <- rep(1, p)
+
+    for (j in 1:p) {
+      bj <- beta[j]
+
+      if (method == "lasso") {
+        weights[j] <- 1
+      } else if (method == "ridge") {
+        weights[j] <- 2 * abs(bj)
+      } else if (method == "elasticnet") {
+        weights[j] <- alpha + 2 * (1 - alpha) * abs(bj)
+      } else if (method == "scad") {
+        abj <- abs(bj)
+        if (abj <= lambda) {
+          weights[j] <- 1
+        } else if (abj <= gamma * lambda) {
+          weights[j] <- (gamma * lambda - abj) / ((gamma - 1) * lambda)
+        } else {
+          weights[j] <- 0
+        }
+      } else if (method == "mcp") {
+        abj <- abs(bj)
+        if (abj <= gamma * lambda) {
+          weights[j] <- 1 - abj / (gamma * lambda)
+        } else {
+          weights[j] <- 0
+        }
+      } else {
+        stop("Unsupported method in LLA.")
+      }
+    }
+
+    for (j in 1:p) {
+      r_j <- y - X %*% beta + X[, j] * beta[j]
+      rho_j <- sum(X[, j] * r_j)
+      XX_j <- sum(X[, j]^2)
+      beta[j] <- sign(rho_j) * max(0, abs(rho_j) - lambda * weights[j]) / XX_j
+    }
+  }
+
+  return(beta)
+}
+```
+
+```{r,echo=FALSE, results='hide'}
+# check algorithm
+check_algorithm_compatibility <- function(method, algorithm) {
+  method <- tolower(method)
+  algorithm <- tolower(algorithm)
+
+  if (method %in% c("scad", "mcp") && algorithm == "fista") {
+    stop("The FISTA algorithm is not suitable for non-convex penalties like SCAD and MCP.")
+  }
+  if (!method %in% c("scad", "mcp") && algorithm == "lla") {
+    warning("LLA is primarily designed for SCAD or MCP penalties and may not be optimal for Ridge, Lasso, or Elastic Net.")
+  }
+}
+
+
+penalized_regression <- function(X, y,
+                                 method = c("lasso", "ridge", "scad", "mcp", "elasticnet"),
+                                 algorithm = c("cda", "fista", "lla"),
+                                 lambda = 1, learning_rate = 0.01,
+                                 max_iter = 1000, alpha = 0.5, gamma = 3.7) {
+  method <- match.arg(method)
+  algorithm <- match.arg(algorithm)
+
+  check_algorithm_compatibility(method, algorithm)
+
+  if (algorithm == "cda") {
+    return(perform_CDA(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
+  } else if (algorithm == "fista") {
+    return(perform_FISTA(X, y, method, lambda, learning_rate, max_iter, alpha, gamma))
+  } else if (algorithm == "lla") {
+    return(perform_LLA(X, y, method, lambda, learning_rate, max_iter, gamma))
+  } else {
+    stop("Unknown algorithm selected.")
+  }
+}
+```
+
+
+
+## Boston Dataset for Penalize Regression
+```{r}
+library(MASS)
+data("Boston")
+
+# response variable (medv)
+y <- scale(Boston[, ncol(Boston)])
+
+# predict variables
+X <- scale(Boston[, -ncol(Boston)])
+head(Boston,3)
+```
+
+
+## Ridge Regression with Boston Dataset
+```{r}
+penalized_regression(X, y, method="ridge", algorithm="cda")
+```
+```{r}
+penalized_regression(X, y, method="ridge", algorithm="fista")
+```
+
+```{r}
+penalized_regression(X, y, method="ridge", algorithm="lla")
+```
+
+## Lasso Regression with Boston Dataset
+```{r}
+penalized_regression(X, y, method="lasso", algorithm="cda")
+```
+```{r}
+penalized_regression(X, y, method="lasso", algorithm="fista")
+```
+
+```{r}
+penalized_regression(X, y, method="lasso", algorithm="lla")
+```
+
+## Elastic Net Regression with Boston Dataset
+```{r}
+penalized_regression(X, y, method="elasticnet", algorithm="cda")
+```
+```{r}
+penalized_regression(X, y, method="elasticnet", algorithm="fista")
+```
+
+```{r}
+penalized_regression(X, y, method="elasticnet", algorithm="lla")
+```
+
+## MCP Regression with Boston Dataset
+```{r}
+penalized_regression(X, y, method="mcp", algorithm="cda")
+```
+```{r, error=FALSE, eval=FALSE}
+penalized_regression(X, y, method="mcp", algorithm="fista")
+```
+```{r, echo=FALSE}
+cat("Error in check_algorithm_compatibility(method, algorithm): The FISTA is not \n recommended for non-convex penalties like SCAD or MCP.\n")
+```
+
+```{r}
+penalized_regression(X, y, method="mcp", algorithm="lla")
+```
+## SCAD Regression with Boston Dataset
+```{r}
+penalized_regression(X, y, method="scad", algorithm="cda")
+```
+```{r, eval=FALSE, error=FALSE}
+penalized_regression(X, y, method="scad", algorithm="fista")
+```
+```{r, echo=FALSE}
+cat("Error in check_algorithm_compatibility(method, algorithm): The FISTA is not \n recommended for non-convex penalties like SCAD or MCP.\n")
+```
+
+```{r}
+penalized_regression(X, y, method="scad", algorithm="lla")
+```
+
 
 ## Q & A
 
