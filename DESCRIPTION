@@ -9,10 +9,19 @@ Authors@R: c(
       role = c("aut", "cre")
     )
   )
-Description: This package provides a flexible framework for fitting penalized regression models with a variety of penalty functions, including Lasso, Ridge, Elastic Net, SCAD, and MCP. It supports multiple optimization methods such as gradient descent (GD), coordinate gradient descent (CGD), and primal-dual algorithms (PD). The main interface allows users to specify the desired penalty and optimization technique, offering a unified approach to regularized regression.
-License: What license is it under?
+Description:  
+  This package provides a comprehensive implementation of penalized regression  
+  models using three optimization algorithms - Coordinate Descent Algorithm (CDA),  
+  Fast Iterative Shrinkage-Thresholding Algorithm (FISTA), and Local Linear Approximation (LLA).  
+  It supports popular penalties including Lasso, Ridge, Elastic Net, SCAD, and MCP.  
+  Users can flexibly choose penalty methods and algorithms, adjust tuning parameters,  
+  and apply the package for both convex and non-convex regularization problems.  
+  The package aims to offer efficient and reliable estimation of regression coefficients  
+  under various penalty settings.
+License: MIT
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 Depends: 
     R (>= 3.5)
 RoxygenNote: 7.3.2
+Imports: MASS

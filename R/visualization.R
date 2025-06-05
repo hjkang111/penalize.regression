@@ -42,4 +42,3 @@ plot_MCP <- function(X, y, lambda_seq, max_iter = 1000, learning_rate = 0.01) {
   matplot(lambda_seq, t(coefs), type = "l", lty = 1, col = 1:ncol(X),
           xlab = expression(lambda), ylab = "Coefficients", main = "MCP Path")
 }
-

@@ -1,5 +1,4 @@
 # penalize regression
-
 # check algorithm
 check_algorithm_compatibility <- function(method, algorithm) {
   method <- tolower(method)
@@ -17,6 +16,42 @@ check_algorithm_compatibility <- function(method, algorithm) {
 }
 
 
+#' Penalized Regression Wrapper
+#'
+#' A unified function to fit penalized regression models using various penalty
+#' methods and optimization algorithms. This wrapper handles Ridge, Lasso, Elastic Net,
+#' SCAD, and MCP penalties, with support for Coordinate Descent (CDA), FISTA,
+#' and Local Linear Approximation (LLA) algorithms.
+#'
+#' @param X A numeric matrix of predictors (n x p).
+#' @param y A numeric response vector of length n.
+#' @param method A character string specifying the penalty type:
+#'   one of "lasso", "ridge", "elasticnet", "scad", or "mcp".
+#' @param algorithm A character string specifying the optimization algorithm:
+#'   one of "cda" (Coordinate Descent Algorithm), "fista" (Fast Iterative Shrinkage-Thresholding Algorithm),
+#'   or "lla" (Local Linear Approximation).
+#' @param lambda A non-negative regularization parameter controlling the overall penalty strength.
+#' @param learning_rate A positive numeric learning rate for gradient-based algorithms (default: 0.01).
+#' @param max_iter An integer specifying the maximum number of iterations (default: 1000).
+#' @param alpha Elastic Net mixing parameter (between 0 and 1, default: 0.5). Only used if \code{method = "elasticnet"}.
+#' @param gamma A tuning parameter for SCAD and MCP (typically >= 3.7, default: 3.7).
+#'
+#' @return A numeric vector of estimated regression coefficients of length p.
+#'
+#' @details
+#' The function automatically checks for compatibility between the selected
+#' penalty method and optimization algorithm, issuing warnings or errors if
+#' inappropriate combinations are chosen.
+#'
+#' @examples
+#' \dontrun{
+#' set.seed(123)
+#' X <- matrix(rnorm(100*10), 100, 10)
+#' y <- rnorm(100)
+#' beta <- penalized_regression(X, y, method = "lasso", algorithm = "cda", lambda = 0.1)
+#' }
+#'
+#' @export
 penalized_regression <- function(X, y,
                                  method = c("lasso", "ridge", "scad", "mcp", "elasticnet"),
                                  algorithm = c("cda", "fista", "lla"),
@@ -38,72 +73,7 @@ penalized_regression <- function(X, y,
   }
 }
 
-
-
-
-# example
-## Data 2 -> Generating data
-set.seed(924)
-
-# predictor X
-X1 <- rnorm(100, mean = 50, sd = 10)  # 평균 50, 표준편차 10
-X2 <- rnorm(100, mean = 30, sd = 5)   # 평균 30, 표준편차 5
-X3 <- rnorm(100, mean = 100, sd = 20)  # 평균 100, 표준편차 20
-X4 <- rnorm(100, mean = 101, sd = 3)  # 평균 101, 표준편차 3
-X5 <- rnorm(100, mean = 57, sd = 100)  # 평균 57, 표준편차 100
-X6 <- rnorm(100, mean = 88, sd = 20)  # 평균 88, 표준편차 58
-X7 <- rnorm(100, mean = 34, sd = 9)  # 평균 34, 표준편차 9
-X8 <- rnorm(100, mean = 83, sd = 23)  # 평균 83, 표준편차 23
-
-
-# Response Y
-eps = rnorm(100, mean = 0, sd = 10)
-Y <- 5 + 3*X1 + 2*X2 - 0.5*X3 + X4 + 1.3*X5 - 0.4*X6 + 2*X7 - X8 + eps
-
-
-Data2 <- data.frame(X1 = X1, X2 = X2, X3 = X3,X4=X4, X5=X5,X6=X6,X7=X7,X8=X8, Y = Y)
-head(Data2)
-X <- as.matrix(Data2[, 1:8])
-y <- Data2[[9]]
-
-X <- scale(X)
-y <- scale(y)
-
-#ridge
-penalized_regression(X, y, method="ridge", algorithm = "cda")
-penalized_regression(X, y, method="ridge", algorithm = "fista") #
-penalized_regression(X, y, method="ridge", algorithm = "lla")
-
-#lasso
-penalized_regression(X, y, method="lasso", algorithm = "cda")
-penalized_regression(X, y, method="lasso", algorithm = "fista") #
-penalized_regression(X, y, method="lasso", algorithm = "lla")
-
-#elastic net
-penalized_regression(X, y, method="elasticnet", algorithm = "cda")
-penalized_regression(X, y, method="elasticnet", algorithm = "fista") #
-penalized_regression(X, y, method="elasticnet", algorithm = "lla")
-# gd, cda,pgd랑 값이 같고, fista값이 같음
-
-#mcp
-beta_hat <- penalized_regression(X, y, method="mcp", algorithm = "cda")
-beta_hat <- penalized_regression(X, y, method="mcp", algorithm = "fista") #
-beta_hat <- penalized_regression(X, y, method="mcp", algorithm = "lla") #
-
-# scad
-beta_hat <- penalized_regression(X, y, method="scad", algorithm = "cda")
-
-y_pred <- X %*% beta_hat
-
-# MSE 계산
-mean((y - y_pred)^2)
-
-
-beta_hat <- penalized_regression(X, y, method="scad", algorithm = "fista")
-beta_hat <- penalized_regression(X, y, method="scad", algorithm = "lla")
-
-
-lambda_seq <- seq(0.1, 2, length.out = 50)
-plot_LASSO(X,y,lambda_seq)
-length(X)
-length(y)
+install.packages("roxygen2")
+library(roxygen2)
+devtools::load_all()
+??perform_CDA
