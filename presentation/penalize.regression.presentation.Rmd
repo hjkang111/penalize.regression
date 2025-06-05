@@ -1,7 +1,7 @@
 ---
 title: "Penalize Regression with R Package"
 subtitle: |
-  A penalized regression approach that has been implemented by separating it according to each algorithm 
+  A penalized regression approach implemented separately for each algorithm
 author: "JuHyun Kang"
 date: "June 6, 2025"
 output:
@@ -16,11 +16,11 @@ header-includes: \input{header_includes.tex}
 ---
 # Introduction
 
-## Introduction with penalize regression
-- Penalized regression is a statistical technique that adds a regularization term to the loss function to prevent overfitting and enable variable selection by shrinking regression coefficients.
+## Introduction with Penalize Regression
+- Penalized regression is a statistical technique that adds a regularization term to the loss function to prevent overfitting and enable variable selection by shrinking regression coefficients
 
 $$
-\min_{\beta} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_i^{\top} \beta \right)^2 \;+\; \sum_{j=1}^{p} P_{\lambda}\bigl(\lvert \beta_j \rvert\bigr) \right\}
+\arg\min_{\beta} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_i^{\top} \beta \right)^2 \;+\; \sum_{j=1}^{p} P_{\lambda}\bigl(\lvert \beta_j \rvert\bigr) \right\}
 $$
 
 
@@ -31,117 +31,114 @@ $$
 
 
 ## Penalize Regression Method
-- Ridge 
-
-  Uses ℓ2 penalty to shrink coefficients and reduce multicollinearity without variable selection.
-
-
-- Lasso 
-
-  Employs ℓ1 penalty to induce sparsity, enabling automatic variable selection.
-
-
-- Elastic Net
-
-  Combines ℓ1 and ℓ2 penalties to balance sparsity and grouping effects, effective with correlated predictors.
+\begin{itemize}
+\item Ridge 
+\vt
+\item Lasso
+\vt
+\item Elastic Net 
+\vt
+\item MCP (Minimax Concave Penalty)
+\vt
+\item SCAD (Smoothly Clipped Absolute Deviation)
+\end{itemize}
   
-
-- MCP (Minimax Concave Penalty)
-
-  Non-convex penalty designed to reduce bias in large coefficients while performing variable selection.
-  
-
-- SCAD (Smoothly Clipped Absolute Deviation)
-
-  Non-convex penalty that smoothly reduces shrinkage on large coefficients to alleviate bias and encourage sparsity.
 
 ## Ridge Regression
-- The ridge penalty is an L2 norm penalty that shrinks all coefficients towards zero proportionally, helping to reduce multicollinearity and overfitting.
+- Uses an L2 norm penalty to shrink coefficients and reduce multicollinearity, though it does not perform variable selection
+
 $$
 P_{\lambda}(\beta_j) = \frac{\lambda}{2} \beta_j^2
 $$
-- The objective function for ridge regression is strictly convex, ensuring a unique global minimum and making it suitable for convex optimization
+
+- The ridge objective function is strictly convex, which guarantees a unique global minimum and makes it well-suited for convex optimization methods
+
 - Ridge regression has a closed-form solution given by:
 $$
 \hat \beta_{\text{ridge}} = (X^{\top}X + \lambda I)^{-1}X^{\top}Y
 $$
-- It effectively reduces multicollinearity by shrinking the regression coefficients but does not perform variable selection
+
 
 ## Lasso Regression
-- The lasso penalty is an L1 norm penalty that encourages sparsity by driving some coefficients exactly to zero, effectively performing variable selection.
+- Lasso regression uses an L1 norm penalty, which encourages sparsity by driving some coefficients exactly to zero, thereby performing effective variable selection
 $$
 P_{\lambda}(\beta_j) = \lambda|\beta_j|
 $$
-- The objective function of lasso is convex but not strictly convex, so it may have multiple solutions when predictors are highly correlated.
+- The lasso objective function is convex but not strictly convex, which means it can have multiple solutions, especially when predictors are highly correlated
 
-- The penalty term is not differentiable at $\beta_j =0$, which requires specialized optimization algorithms such as coordinate descent or subgradient methods.
+- The penalty term is not differentiable at $\beta_j =0$, which requires specialized optimization algorithms such as coordinate descent or subgradient methods
 
 
 ## Elastic Net Regression
-- The elastic net penalty is a combination of the ridge and lasso penalty terms.
+- Elastic net combines the L1 and L2 penalties from lasso and ridge regression.
 $$
-P_{\lambda}(\beta_j) = \lambda(\alpha |\beta_j|+\frac{1-\alpha}{2} \beta_j^2)
+P_{\lambda}(\beta_j) = \lambda \left( \alpha |\beta_j| + \dfrac{1 - \alpha}{2} \beta_j^2 \right)
 $$
-- The objective function of elastic net is convex, ensuring a unique global minimum.
 
-- Elastic net is particularly effective when predictors are correlated, as it encourages a grouping effect while maintaining sparsity.
-
+- The elastic net objective function is convex. Under certain conditions, it guarantees a unique global minimum
+- Elastic net is particularly effective when predictors are correlated, as it encourages a grouping effect while maintaining sparsity
+\vt
 \begin{itemize}
-\item $\alpha = 1 \rightarrow$ lasso
-\item $\alpha = 0 \rightarrow$ ridge
-\item $0<\alpha <1 \rightarrow$ elastic net
+\item $\alpha = 1$: equivalent to lasso
+\item $\alpha = 0$: equivalent to ridge
+\item $0 < \alpha < 1$: elastic net (a mixture of both)
 \end{itemize}
 
 
+
 ## Minimax Concave Penalty Regression (MCP)
-- The MCP is a non-convex penalty designed to reduce the bias of large coefficients while maintaining sparsity.
+- The minimax concave penalty (MCP) is a non-convex penalty function that aims to reduce estimation bias for large coefficients while maintaining sparsity
 $$
-P_{\lambda} (\beta_j) = 
+P_{\lambda}(\beta_j) = 
 \begin{cases}
-\lambda |\beta_j| - \frac{\beta_j^2}{2 \gamma}, & \text{if } |\beta_j| \leq \gamma \lambda, \\
-\frac{\gamma \lambda^2}{2}, & \text{if } |\beta_j| > \gamma \lambda.
+\lambda |\beta_j| - \dfrac{\beta_j^2}{2\gamma}, & \text{if } |\beta_j| \leq \gamma\lambda, \\
+\dfrac{\gamma \lambda^2}{2}, & \text{if } |\beta_j| > \gamma\lambda.
 \end{cases}
 $$
-- The parameter $\gamma$ controls the degree of concavity and non-linearity: larger values make the penalty closer to the lasso penalty.
 
-- MCP enables variable selection and has desirable oracle properties under certain conditions.
+- The parameter $\gamma$ controls the degree of concavity and non-linearity:
+As $\gamma$ increases, the MCP penalty approaches the lasso penalty
+
+- MCP enables variable selection and has desirable oracle properties under certain conditions
 
 ## Smoothing Clipped Absolute Deviation Regression (SCAD)
-- The SCAD penalty is a non-convex penalty designed to overcome the bias problem of lasso for large coefficients while maintaining sparsity.
+- The smoothly clipped absolute deviation (SCAD) penalty is a non-convex function designed to reduce the estimation bias of large coefficients while preserving sparsity, addressing the limitations of the lasso
+
 $$
 P_{\lambda} (\beta_j) = 
 \begin{cases}
-\lambda |\beta_j| , & \text{if } |\beta_j| \leq \lambda, \\
--\frac{|\beta_j|^2-2a\lambda|\beta_j|+\lambda^2}{2(a-1)} , & \text{if }\lambda <  |\beta_j| \leq a \lambda, \\
-\frac{(a+1) \lambda^2}{2}, & \text{if } |\beta_j| > a \lambda.
+\lambda |\beta_j|, & \text{if } |\beta_j| \leq \lambda, \\
+\dfrac{-|\beta_j|^2 + 2a\lambda|\beta_j| - \lambda^2}{2(a - 1)}, & \text{if } \lambda < |\beta_j| \leq a\lambda, \\
+\dfrac{(a + 1)\lambda^2}{2}, & \text{if } |\beta_j| > a\lambda.
 \end{cases}
 $$
-- The parameter $a$ controls the concavity of the penalty: commonly, $a=3.7$ is recommended.
 
-- SCAD encourages sparsity and achieves the oracle property under suitable condition.
+- The parameter $a$ controls the concavity of the penalty: commonly, $a=3.7$ is recommended
+
+- SCAD encourages sparsity and satisfies the oracle property under suitable regularity conditions
 
 # Algorithms
 
 ## Coordinate Descent Algorithm (CDA)
-- Coordinate Descent is an iterative optimization algorithm that updates one parameter at a time while keeping the others fixed.
+- Coordinate Descent is an iterative optimization algorithm that updates one parameter at a time while keeping the others fixed
 
-- It is especially efficient for problems where each coordinate update has a closed-form solution, such as in Lasso and Elastic Net regression.
+- It is particularly efficient for problems where each coordinate update has a closed-form solution, such as in Lasso and Elastic Net regressions
 
-- The algorithm is simple to implement and well-suited for high-dimensional problems.
+- The algorithm is simple to implement and well-suited for high-dimensional problems
 
 - For the following objective,
 $$
-\min_{\beta} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_i^{\top} \beta \right)^2 \;+\; \sum_{j=1}^{p} P_{\lambda}\bigl(\lvert \beta_j \rvert\bigr) \right\}
+\arg\min_{\beta} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_i^{\top} \beta \right)^2 \;+\; \sum_{j=1}^{p} P_{\lambda}\bigl(\lvert \beta_j \rvert\bigr) \right\}
 $$
 the coordinate-wise update step is given by:
 $$
-\beta_j^{(k+1)} \leftarrow \text{argmin}_{\beta} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_i^{\top} \beta_{-j}^{(k+1)} -x_{ij} \beta_j \right)^2 \;+\; \sum_{j=1}^{p} P_{\lambda}\bigl(\lvert \beta_j \rvert\bigr) \right\}
+\beta_j^{(k+1)} \leftarrow \arg\min_{\beta_j} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_{ij} \beta_j - \sum_{k \neq j} x_{ik} \beta_k^{(k+1)} \right)^2 + P_{\lambda}(|\beta_j|) \right\}
 $$
 where $\beta_{-j}^{(k+1)}$ denotes the current estimates for all parameters except $\beta_j$
 
 
 ## Fast Iterative Soft-Thresholding Algorithm (FISTA)
-- FISTA is an accelerated version of the proximal gradient descent method designed to solve optimization problems with non-smooth penalties, such as the Lasso.
+- Fast iterative soft-thresholding algorithm (FISTA) is an accelerated version of the proximal gradient descent method, based on Nesterov's acceleration scheme, and is designed to solve optimization problems with non-smooth penalties such as the Lasso.
 \vt
 - It achieves faster convergence compared to the standard iterative soft-thresholding algorithm.
 \vt
@@ -155,24 +152,25 @@ $$
 $$
 where $f(\beta)$ is convex and differentiable, and $P_{\lambda}(\beta)$ s convex but possibly non-smooth.
 - FISTA updates proceed as follows:
+
 \begin{align*}
-\beta_{k+1} &= \text{prox}_{\eta P_{\lambda}}\Bigl(y^k - \eta \nabla f(y^k)\Bigr), \\
+\beta_{k+1} &= \operatorname{prox}_{\eta P_{\lambda}}\left( y^k - \eta \nabla f(y^k) \right), \\
 t_{k+1} &= \frac{1 + \sqrt{1 + 4t_k^2}}{2}, \\
-y^{k+1} &= \beta_{k+1} + \frac{t_k - 1}{t_{k+1}}\bigl(\beta_{k+1} - \beta_k\bigr).
+y^{k+1} &= \beta_{k+1} + \frac{t_k - 1}{t_{k+1}}\left( \beta_{k+1} - \beta_k \right),
 \end{align*}
-where $\text{prox}_{\eta P_{\lambda}}$ is the proximal operator (often implemented as a soft-thresholding function for the Lasso).
+where \( \operatorname{prox}_{\eta P_{\lambda}} \) is the proximal operator (often implemented as a soft-thresholding function when \( P_{\lambda} \) is the \( \ell_1 \) norm as in the Lasso)
 
 ## Local Linear Approximation Algorithm (LLA)
-- The Local Linear Approximation (LLA) algorithm is used to handle non-convex penalties, such as MCP and SCAD, by approximating the penalty locally with a linear function.
+The Local Linear Approximation (LLA) algorithm is used to handle non-convex penalties, such as SCAD and MCP, by approximating the penalty function locally with a linear function
 \vt
-- This transforms the original non-convex optimization problem into a series of convex problems that are easier to solve.
+- This transforms the original non-convex optimization problem into a series of convex problems, which are easier to solve
 \vt
-- LLA helps to achieve desirable statistical properties, such as the oracle property.
+- LLA is known to achieve desirable statistical properties, including the oracle property
 
 ## LLA Algorithm with SCAD Example
 - For example, the SCAD penalty can be locally approximated at the $k$-th iteration as follows:
 $$
-P_{\lambda}(|\beta_j|) ~~ P_{\lambda}(|\beta_j^{(k)}|) + P'(|\beta_j^{(k)}|) (|\beta_j| - |\beta_j^{(k)}|)
+P_{\lambda}(|\beta_j|) \approx P_{\lambda}(|\beta_j^{(k)}|) + P_{\lambda}'(|\beta_j^{(k)}|) (|\beta_j| - |\beta_j^{(k)}|)
 $$
 - Hence, the optimization problem at iteration $k+1$ becomes:
 $$
