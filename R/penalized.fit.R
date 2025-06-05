@@ -72,33 +72,3 @@ penalized_regression <- function(X, y,
     stop("Unknown algorithm selected.")
   }
 }
-
-install.packages("roxygen2")
-library(roxygen2)
-devtools::load_all()
-??perform_CDA
-
-library(roxygen2)
-roxygen2::roxygenise()
-detach("package:penalize.regression", unload=TRUE)
-
-search()
-install.packages(c("MASS", "rlang", "cli", "ellipsis", "glue", "R6", "fansi", "pillar"))
-
-getOption("repos")
-# named vector 형태로 https://cran.rstudio.com/ 가 보여야 정상입니다.
-remotes::install_local("C:/Users/naomi/OneDrive/Desktop/penalize.regression")
-remotes::install_local("C:/Users/naomi/OneDrive/Desktop/penalize.regression", repos = "https://cran.rstudio.com/")
-
-
-
-# 패키지 소스 빌드
-devtools::build("C:/Users/naomi/OneDrive/Desktop/penalize.regression")
-
-# 빌드된 tar.gz 파일 이름을 확인 후 (예: penalize.regression_0.1.0.tar.gz)
-install.packages("C:/Users/naomi/OneDrive/Desktop/penalize.regression_0.1.0.tar.gz", repos = NULL, type = "source")
-getOption("repos")
-# CRAN 값이 https://cran.rstudio.com/ 으로 제대로 설정되어 있어야 합니다.
-install.packages(c("MASS"))
-
-install.packages("C:/Users/naomi/OneDrive/Desktop/penalize.regression_0.1.0.tar.gz", repos = NULL, type = "source", dependencies = TRUE)
