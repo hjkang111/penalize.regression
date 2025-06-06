@@ -1,7 +1,7 @@
 ---
-title: "Penalize Regression with R Package"
+title: "Penalized Regression with R Package"
 subtitle: |
-  Flexible Penalized Regression with Multiple Penalties and Solvers algorithm
+  Flexible Penalized Regression with Multiple Penalties and Solvers Algorithm
 author: "JuHyun Kang"
 date: "June 6, 2025"
 output:
@@ -16,7 +16,7 @@ header-includes: \input{header_includes.tex}
 ---
 # Introduction
 
-## Introduction with Penalize Regression
+## Introduction with Penalized Regression
 - Penalized regression is a statistical technique that adds a regularization term to the loss function to prevent overfitting and enable variable selection by shrinking regression coefficients
 
 $$
@@ -29,8 +29,9 @@ $$
 - $\beta$ is the vector of regression coefficients
 - $P_{\lambda} (\cdot)$ is a penalty function parameterized by a regularization parameter $\lambda$
 
+# Methods
 
-## Penalize Regression Method
+## Penalized Regression Method
 \begin{itemize}
 \item Ridge 
 \vt
@@ -70,7 +71,7 @@ $$
 
 
 ## Elastic Net Regression
-- Elastic net combines the L1 and L2 penalties from lasso and ridge regression.
+- Elastic net combines the L1 and L2 penalties from lasso and ridge regression
 $$
 P_{\lambda}(\beta_j) = \lambda \left( \alpha |\beta_j| + \dfrac{1 - \alpha}{2} \beta_j^2 \right)
 $$
@@ -99,7 +100,6 @@ $$
 - The parameter $\gamma$ controls the degree of concavity and non-linearity:
 As $\gamma$ increases, the MCP penalty approaches the lasso penalty
 
-- MCP enables variable selection and has desirable oracle properties under certain conditions
 
 ## Smoothing Clipped Absolute Deviation Regression (SCAD)
 - The smoothly clipped absolute deviation (SCAD) penalty is a non-convex function designed to reduce the estimation bias of large coefficients while preserving sparsity, addressing the limitations of the lasso
@@ -115,7 +115,6 @@ $$
 
 - The parameter $a$ controls the concavity of the penalty: commonly, $a=3.7$ is recommended
 
-- SCAD encourages sparsity and satisfies the oracle property under suitable regularity conditions
 
 # Algorithms
 
@@ -123,8 +122,6 @@ $$
 - Coordinate Descent is an iterative optimization algorithm that updates one parameter at a time while keeping the others fixed
 
 - It is particularly efficient for problems where each coordinate update has a closed-form solution, such as in Lasso and Elastic Net regressions
-
-- The algorithm is simple to implement and well-suited for high-dimensional problems
 
 - For the following objective,
 $$
@@ -134,15 +131,14 @@ the coordinate-wise update step is given by:
 $$
 \beta_j^{(k+1)} \leftarrow \arg\min_{\beta_j} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_{ij} \beta_j - \sum_{k \neq j} x_{ik} \beta_k^{(k+1)} \right)^2 + P_{\lambda}(|\beta_j|) \right\}
 $$
-where $\beta_{-j}^{(k+1)}$ denotes the current estimates for all parameters except $\beta_j$
 
 
 ## Fast Iterative Soft-Thresholding Algorithm (FISTA)
-- Fast iterative soft-thresholding algorithm (FISTA) is an accelerated version of the proximal gradient descent method, based on Nesterov's acceleration scheme, and is designed to solve optimization problems with non-smooth penalties such as the Lasso.
+- Fast iterative soft-thresholding algorithm (FISTA) is an accelerated version of the proximal gradient descent method and is designed to solve optimization problems with non-smooth penalties such as the Lasso
 \vt
-- It achieves faster convergence compared to the standard iterative soft-thresholding algorithm.
+- It achieves faster convergence compared to the standard iterative soft-thresholding algorithm
 \vt
-- FISTA is widely used in sparse regression models, including Lasso and Elastic Net, due to its efficiency and simplicity.
+- FISTA is widely used in sparse regression models, including Lasso and Elastic Net, due to its efficiency and simplicity
 
 
 ## FISTA Algorithm with Objective function
@@ -150,9 +146,9 @@ where $\beta_{-j}^{(k+1)}$ denotes the current estimates for all parameters exce
 $$
 \min_{\beta} \{f(\beta) + P_{\lambda}(\beta)\}
 $$
-where $f(\beta)$ is convex and differentiable, and $P_{\lambda}(\beta)$ s convex but possibly non-smooth.
-- FISTA updates proceed as follows:
+where $f(\beta)$ is convex and differentiable, and $P_{\lambda}(\beta)$ is convex but possibly non-smooth
 
+- FISTA updates proceed as follows:
 \begin{align*}
 \beta_{k+1} &= \operatorname{prox}_{\eta P_{\lambda}}\left( y^k - \eta \nabla f(y^k) \right), \\
 t_{k+1} &= \frac{1 + \sqrt{1 + 4t_k^2}}{2}, \\
@@ -172,18 +168,19 @@ where \( \operatorname{prox}_{\eta P_{\lambda}} \) is the proximal operator (oft
 $$
 P_{\lambda}(|\beta_j|) \approx P_{\lambda}(|\beta_j^{(k)}|) + P_{\lambda}'(|\beta_j^{(k)}|) (|\beta_j| - |\beta_j^{(k)}|)
 $$
+
 - Hence, the optimization problem at iteration $k+1$ becomes:
 $$
 \min_{\beta} \left\{ \frac{1}{2n} \sum_{i=1}^{n} \left( y_i - x_i^{\top} \beta \right)^2 \;+\; \sum_{j=1}^{p} w_{j}^{(k)}\lvert \beta_j \rvert \right\}
 $$
 where
 $$
-w_j^{(k)} = P'_{\lambda}(|\beta_j^{(k)}|).
+w_j^{(k)} = P'_{\lambda}(|\beta_j^{(k)}|)
 $$
 
 # R Package
 
-## Penalize Regression Function (Part 1)
+## Penalized Regression Function (Part 1)
 ```{r,eval=FALSE}
 penalized_regression <- function(X, y,
                                  method = c("lasso", "ridge", 
@@ -366,7 +363,6 @@ perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3,
 ```{r, eval=FALSE}
     for (j in 1:p) {
       if (method == "ridge") {
-        # Ridge not need to soft-thresholding
         beta_new[j] <- z[j] - learning_rate * (grad_z[j] + 2 * lambda * z[j])
 
       } else if (method %in% c("lasso", "elasticnet")) {
@@ -382,8 +378,7 @@ perform_FISTA <- function(X, y, method, lambda, learning_rate = 1e-3,
         pen_grad_val <- penalty_grad(z[j])
         thresh <- learning_rate * abs(pen_grad_val)
 
-        # If the threshold is 0, soft-thresholding has no effect
-        # so set threshold to 0
+        # If the threshold is 0, soft-thresholding has no effect 
         if (thresh < 1e-12) thresh <- 0
 ```
 ## FISTA Function - Convergence Check and Output
